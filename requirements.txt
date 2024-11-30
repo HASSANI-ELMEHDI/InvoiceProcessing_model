@@ -1,0 +1,5 @@
+transformers
+pillow
+flask
+pytorch-lightning
+pytorch
