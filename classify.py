@@ -6,13 +6,13 @@ from transformers import DonutProcessor, VisionEncoderDecoderModel
 from torch.quantization import quantize_dynamic
 
 # Paths to local model and processor
-MODEL_PATH = "./models/donut-base-finetuned-cord-v2"
+MODEL_PATH = "./models/donut-base-finetuned-rvlcdip"
 
 # Ensure the local model directory exists
 if not os.path.exists(MODEL_PATH):
     print("Downloading model locally...")
-    processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
-    model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
+    processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip")
+    model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip")
     processor.save_pretrained(MODEL_PATH)
     model.save_pretrained(MODEL_PATH)
 else:
@@ -20,7 +20,7 @@ else:
     model = VisionEncoderDecoderModel.from_pretrained(MODEL_PATH)
 
 # Quantize the model for faster inference
-print("Quantizing the model...")
+print("Quantizing the model 1...")
 model = quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
 
 # Check and set the device
@@ -28,15 +28,16 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
 
 
-def process_image(image_path):
+
+def classify_image(image_path):
     """
-    Generate data for an image using a pretrained Donut model.
+    Image classification
 
     Args:
         image_path (str): Path to the input image file.
 
     Returns:
-        Json format
+        image class
     """
 
     # Check and set the device (CPU or GPU)
@@ -51,7 +52,7 @@ def process_image(image_path):
     pixel_values = processor(image, return_tensors="pt").pixel_values
 
     # Prepare decoder inputs
-    task_prompt = "<s_cord-v2>"
+    task_prompt = "<s_rvlcdip>"
     decoder_input_ids = processor.tokenizer(task_prompt, add_special_tokens=False, return_tensors="pt").input_ids
 
     # Generate answer
@@ -72,5 +73,6 @@ def process_image(image_path):
     sequence = processor.batch_decode(outputs.sequences)[0]
     sequence = sequence.replace(processor.tokenizer.eos_token, "").replace(processor.tokenizer.pad_token, "")
     sequence = re.sub(r"<.*?>", "", sequence, count=1).strip()  # Remove the first task start token
-
-    return processor.token2json(sequence)
+    # convert response to json
+    result = processor.token2json(sequence)
+    return result['class']
