@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 from process import process_image
 from classify import classify_image
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app) 
 
 
 @app.route('/data', methods=['POST'])
